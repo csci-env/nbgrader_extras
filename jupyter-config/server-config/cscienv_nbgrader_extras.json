@@ -1,0 +1,7 @@
+{
+  "ServerApp": {
+    "jpserver_extensions": {
+      "cscienv_nbgrader_extras": true
+    }
+  }
+}

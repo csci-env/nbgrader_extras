@@ -1,0 +1,22 @@
+{
+  "jupyter.lab.shortcuts": [],
+  "title": "cscienv_nbgrader_extras",
+  "description": "cscienv_nbgrader_extras settings.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false,
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "cscienv_nbgrader_extras-menu",
+        "label": "Grading",
+        "rank": 100,
+        "items": [
+          {
+            "command": "cscienv_nbgrader_extras:extract-student-grades"
+          }
+        ]
+      }
+    ]
+  }
+}

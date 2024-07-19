@@ -28,23 +28,21 @@ const plugin: JupyterFrontEndPlugin<void> = {
         });
     }
 
-    requestAPI<any>('get_example')
-      .then(data => {
-        console.log(data);
-      })
-      .catch(reason => {
-        console.error(
-          `The cscienv_nbgrader_extras server extension appears to be missing.\n${reason}`
-        );
-      });
-
 
     const { commands } = app;
     commands.addCommand('cscienv_nbgrader_extras:extract-student-grades', {
-      label: 'Extract Student Grades',
-      caption: 'Extract Student Grades',
+      label: 'Export Student Grades',
+      caption: 'Export Student Grades',
       execute: () => {
-        console.log('extract');
+        requestAPI<any>('extract-student-grades')
+          .then(data => {
+            console.log(data);
+          })
+          .catch(reason => {
+            console.error(
+              `The cscienv_nbgrader_extras server extension appears to be missing.\n${reason}`
+            );
+          });
       }
     });
   }

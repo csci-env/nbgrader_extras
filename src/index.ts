@@ -54,10 +54,20 @@ const plugin: JupyterFrontEndPlugin<void> = {
       caption: 'Export Student Grades',
       execute: () => {
         requestAPI<any>('extract-student-grades')
-          .then(data => { console.log(data); })
+          .then(data => {
+            const a = document.createElement('a');
+            const blob = new Blob([data.data], {type: 'text/csv'});
+            const url = window.URL.createObjectURL(blob);
+            
+            a.href = url;
+            a.download = 'grades.csv';
+            a.click();
+
+            window.URL.revokeObjectURL(url);
+          })
           .catch(reason => {
             console.error(
-              `The cscienv_nbgrader_extras server extension appears to be missing.\n${reason}`
+              `Error exporting grades.\n${reason}`
             );
           });
       }

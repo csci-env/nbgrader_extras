@@ -16,24 +16,41 @@ class ExportHandler(APIHandler):
     # Jupyter server
     @tornado.web.authenticated
     def get(self):
-        subprocess.run(['nbgrader', 'export'])
-        self.finish(json.dumps({
-            "data": "Grades exported"
-        }))
+        print('########## exporting')
+        proc = subprocess.run(['nbgrader', 'export'], cwd=f'{HOME}/nbgrader', capture_output=True)
+        if proc.returncode == 0:
+            print('########## opening')
+            with open(f'{HOME}/nbgrader/grades.csv', 'r') as csv:
+                print('########## reading')
+                self.finish(json.dumps({
+                    'data': csv.read()
+                }))
+        else:
+            print('########## failed')
+            self.set_status(500)
+            self.finish(json.dumps({
+                'data': [],
+                'message': f'Failed to export grades: {proc.stderr.decode("utf-8")}'
+            }))
 
 class InitializeHandler(APIHandler):
     @tornado.web.authenticated
     def get(self):
         proc = subprocess.run(['nbgrader', 'quickstart', '.'], cwd=f'{HOME}/nbgrader')
-        subprocess.run(['rm', '-f', 'nbgrader_config.py'], cwd=f'{HOME}/nbgrader')
         if proc.returncode == 0:
+            # Remove the automatically created students.
+            subprocess.run(['nbgrader', 'db', 'student', 'remove', 'bitdiddle'], cwd=f'{HOME}/nbgrader')
+            subprocess.run(['nbgrader', 'db', 'student', 'remove', 'hacker'], cwd=f'{HOME}/nbgrader')
+            subprocess.run(['nbgrader', 'db', 'student', 'remove', 'reasoner'], cwd=f'{HOME}/nbgrader')
+            subprocess.run(['rm', '-f', 'nbgrader_config.py'], cwd=f'{HOME}/nbgrader')
             self.finish(json.dumps({
                 'data': 'Nbgrader Initialized'
             }))
         else:
             self.set_status(500)
             self.finish(json.dumps({
-                'data': 'Failed to initialize Nbgrader'
+                'data': [],
+                'message': 'Failed to initialize Nbgrader'
             }))
 
 class AssignmentListHandler(APIHandler):
@@ -48,7 +65,8 @@ class AssignmentListHandler(APIHandler):
         else:
             self.set_status(500)
             self.finish(json.dumps({
-                'data': f'Failed to fetch assignments: {proc.stderr.decode("utf-8")}'
+                'data': [],
+                'message': f'Failed to fetch assignments: {proc.stderr.decode("utf-8")}'
             }))
 
 class AutogradeHandler(APIHandler):
@@ -58,7 +76,8 @@ class AutogradeHandler(APIHandler):
         if collect.returncode != 0:
             self.set_status(500)
             self.finish(json.dumps({
-                'data': f'Failed to collect {assignment} for autograding: {collect.stderr.decode("utf-8")}'
+                'data': [],
+                'message': f'Failed to collect {assignment} for autograding: {collect.stderr.decode("utf-8")}'
             }))
             return
 
@@ -66,7 +85,8 @@ class AutogradeHandler(APIHandler):
         if proc.returncode != 0:
             self.set_status(500)
             self.finish(json.dumps({
-                'data': f'Failed to autograde {assignment}: {proc.stderr.decode("utf-8")}'
+                'data': [],
+                'message': f'Failed to autograde {assignment}: {proc.stderr.decode("utf-8")}'
             }))
             return
 

@@ -12,6 +12,7 @@ import { requestAPI } from './handler';
 
 const cmdExportGrades = 'cscienv_nbgrader_extras:extract-student-grades';
 const cmdInitializeNbgrader = 'cscienv_nbgrader_extras:initialize-nbgrader';
+const cmdAutogradeAssignment = 'cscienv_nbgrader_extras:autograde-assignment';
 
 /**
  * Initialization data for the cscienv_nbgrader_extras extension.
@@ -61,9 +62,31 @@ const plugin: JupyterFrontEndPlugin<void> = {
           });
       }
     });
+    commands.addCommand(cmdAutogradeAssignment, {
+      caption: 'Autograde Assignment',
+      label: (args: any) => {
+        return `Autograde ${args.assignment}`
+      },
+      execute: (args: any) => {
+        requestAPI(`autograde/${args.assignment}`)
+          .then(data => { console.log(data); })
+          .catch(reason => {
+            console.log(`Error autograding ${args.assignment}: ${reason}`);
+          });
+      }
+    })
 
     const autogradeMenu = new Menu({commands: app.commands});
     autogradeMenu.title.label = 'Autograde';
+    requestAPI<any>('list-assignments')
+      .then(data => {
+        for (const assignment of data.data) {
+          autogradeMenu.addItem({command: cmdAutogradeAssignment, args: {assignment: assignment}})
+        }
+      })
+      .catch(reason => {
+        console.error(`######## cry: ${reason}`)
+      });
 
     const extrasMenu = new Menu({commands: app.commands});
     extrasMenu.title.label = 'Grading'

@@ -3,6 +3,7 @@ import {
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
 
+import { Notification } from '@jupyterlab/apputils';
 import { IMainMenu } from '@jupyterlab/mainmenu';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { Menu } from '@lumino/widgets';
@@ -42,11 +43,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
       label: 'Initialize Nbgrader',
       caption: 'Initialize Nbgrader',
       execute: () => {
-        requestAPI<any>('initialize-nbgrader')
-          .then(data => { console.log(data); })
-          .catch(reason => {
-            console.log(`Error initializing nbgrader: ${reason}`);
-          })
+        Notification.promise(requestAPI<any>('initialize-nbgrader'), {
+          pending: { message: 'Initializing Nbgrader...', options: { autoClose: false } },
+          error: { message: (() => 'Failed to initialize Nbgrader') },
+          success: { message: ((data: any) => data.data) }
+        });
       }
     });
     commands.addCommand(cmdExportGrades, {
@@ -78,11 +79,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
         return `Autograde ${args.assignment}`
       },
       execute: (args: any) => {
-        requestAPI(`autograde/${args.assignment}`)
-          .then(data => { console.log(data); })
-          .catch(reason => {
-            console.log(`Error autograding ${args.assignment}: ${reason}`);
-          });
+        Notification.promise(requestAPI<any>(`autograde/${args.assignment}`), {
+          pending: { message: `Autograding ${args.assignment}...`, options: { autoClose: false } },
+          error: { message: (() => `Failed to autograde ${args.assignment}`) },
+          success: { message: ((data: any) => data.data) }
+        });
+        // requestAPI(`autograde/${args.assignment}`)
+        //   .then(data => { console.log(data); })
+        //   .catch(reason => {
+        //     console.log(`Error autograding ${args.assignment}: ${reason}`);
+        //   });
       }
     })
 

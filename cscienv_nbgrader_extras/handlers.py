@@ -6,9 +6,7 @@ import tornado
 import subprocess
 import os
 import re
-
-HOME = os.environ['HOME']
-COURSE = os.environ['COURSE']
+import asyncio
 
 class ExportHandler(APIHandler):
     # The following decorator should be present on all verb methods (head, get, post,
@@ -16,17 +14,14 @@ class ExportHandler(APIHandler):
     # Jupyter server
     @tornado.web.authenticated
     def get(self):
-        print('########## exporting')
+        HOME = os.environ['HOME']
         proc = subprocess.run(['nbgrader', 'export'], cwd=f'{HOME}/nbgrader', capture_output=True)
         if proc.returncode == 0:
-            print('########## opening')
             with open(f'{HOME}/nbgrader/grades.csv', 'r') as csv:
-                print('########## reading')
                 self.finish(json.dumps({
                     'data': csv.read()
                 }))
         else:
-            print('########## failed')
             self.set_status(500)
             self.finish(json.dumps({
                 'data': [],
@@ -35,9 +30,11 @@ class ExportHandler(APIHandler):
 
 class InitializeHandler(APIHandler):
     @tornado.web.authenticated
-    def get(self):
-        proc = subprocess.run(['nbgrader', 'quickstart', '.'], cwd=f'{HOME}/nbgrader')
-        if proc.returncode == 0:
+    async def get(self):
+        HOME = os.environ['HOME']
+        proc = await asyncio.create_subprocess_exec('nbgrader', 'quickstart', '.', cwd=f'{HOME}/nbgrader')
+        rc = await proc.wait()
+        if rc == 0:
             # Remove the automatically created students.
             subprocess.run(['nbgrader', 'db', 'student', 'remove', 'bitdiddle'], cwd=f'{HOME}/nbgrader')
             subprocess.run(['nbgrader', 'db', 'student', 'remove', 'hacker'], cwd=f'{HOME}/nbgrader')
@@ -58,6 +55,7 @@ class AssignmentListHandler(APIHandler):
     def get(self):
         proc = subprocess.run(['nbgrader', 'list'], capture_output=True)
         if proc.returncode == 0:
+            COURSE = os.environ['COURSE']
             assignments = re.findall(f'{COURSE} ([\\w ]+)', proc.stderr.decode('utf-8'))
             self.finish(json.dumps({
                 'data': assignments
@@ -71,7 +69,7 @@ class AssignmentListHandler(APIHandler):
 
 class AutogradeHandler(APIHandler):
     @tornado.web.authenticated
-    def get(self, assignment):
+    async def get(self, assignment):
         collect = subprocess.run(['nbgrader', 'collect', '--update', '--before-duedate', assignment], capture_output=True)
         if collect.returncode != 0:
             self.set_status(500)
@@ -81,12 +79,13 @@ class AutogradeHandler(APIHandler):
             }))
             return
 
-        proc = subprocess.run(['nbgrader', 'autograde', assignment, '--force'], capture_output=True)
-        if proc.returncode != 0:
+        autograde = await asyncio.create_subprocess_exec('nbgrader', 'autograde', assignment, '--force')
+        rc = await autograde.wait()
+        if rc != 0:
             self.set_status(500)
             self.finish(json.dumps({
                 'data': [],
-                'message': f'Failed to autograde {assignment}: {proc.stderr.decode("utf-8")}'
+                'message': f'Failed to autograde {assignment}'
             }))
             return
 
